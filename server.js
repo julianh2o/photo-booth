@@ -19,6 +19,7 @@ const nextapp = next({ dev });
 const handle = nextapp.getRequestHandler();
 
 const FFmpeg = require('./FFmpeg');
+const { resolve } = require('path');
 const APP_PORT = 3000;
 
 const photoDirectory = path.join(__dirname,"pictures");
@@ -26,25 +27,34 @@ const photoDirectory = path.join(__dirname,"pictures");
 let preview = null;
 function startPreview() {
     if (preview) return;
+    return new Promise((resolve,reject) => {
+        console.log("Starting Preview");
+        preview = exec(`sh -c 'gphoto2 --set-config /main/actions/viewfinder=1 --stdout --capture-movie | ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -threads 0 -f v4l2 /dev/video0'`,function(error,stdout,stderr) {
+            // if (error) {
+            //     console.log(error.stack);
+            //     console.log('Error code: '+error.code);
+            //     console.log('Signal received: '+error.signal);
+            // }
+            // console.log('Child Process STDOUT: '+stdout);
+            // console.log('Child Process STDERR: '+stderr);
+        });
 
-    console.log("Starting Preview");
-    preview = exec(`sh -c 'gphoto2 --set-config /main/actions/viewfinder=1 --stdout --capture-movie | ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -threads 0 -f v4l2 /dev/video0'`,function(error,stdout,stderr) {
-        // if (error) {
-        //     console.log(error.stack);
-        //     console.log('Error code: '+error.code);
-        //     console.log('Signal received: '+error.signal);
-        // }
-        // console.log('Child Process STDOUT: '+stdout);
-        // console.log('Child Process STDERR: '+stderr);
-    });
+        const t = setTimeout(reject,3000);
+        // preview.stdout.on("data",(data) => console.log("stdout: "+data));
+        preview.stderr.on("data",(data) => {
+            if (data.startsWith("frame=")) {
+                clearTimeout(t);
+                resolve();
+            }
+            // console.log("sterr: "+data);
+        });
 
-    preview.stdout.on("data",(data) => console.log("stdout: "+data));
-    preview.stderr.on("data",(data) => console.log("sterr: "+data));
+        preview.on("exit",function(code) {
+            console.log("Preview exited with "+code);
+            preview = null;
+        });
 
-    preview.on("exit",function(code) {
-        console.log("Preview exited with "+code);
-        preview = null;
-    });
+    })
 }
 
 async function stopPreview() {
@@ -107,8 +117,8 @@ async function burst(count, delay) {
     return filenames;
 }
 
-app.get("/start",(req,res) => {
-    startPreview();
+app.get("/start",async (req,res) => {
+    await startPreview();
     res.sendStatus(200);
 });
 
@@ -149,7 +159,7 @@ app.get('/image', async function (req, res) {
         const previewOn = !!preview;
         if (previewOn) await stopPreview();
         const paths = await burst();
-        if (previewOn) startPreview();
+        // if (previewOn) startPreview();
 
         res.json(_.map(paths,(f) => path.join("/photos",path.relative(photoDirectory,f))));
     } finally {
