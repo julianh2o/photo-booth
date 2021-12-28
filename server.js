@@ -91,12 +91,12 @@ async function singleShot(noSave) {
     })
 }
 
-async function burst() {
+async function burst(count, delay) {
     const start = new Date().getTime();
     const filenames = [];
-    for (let i=0; i<3; i++) {
+    for (let i=0; i<count; i++) {
         try {
-            const [filename] = await Promise.all([singleShot(),sleep(5000)]);
+            const [filename] = await Promise.all([singleShot(),sleep(delay)]);
             filenames.push(filename);
             console.log(new Date().getTime() - start);
         } catch (err) {
@@ -142,6 +142,7 @@ app.get('/preview', function (req, res) {
 
 let capturing = false;
 app.get('/image', async function (req, res) {
+    const {count, delay} = req.query;
     if (capturing) res.send("busy");
     capturing = true;
     try {

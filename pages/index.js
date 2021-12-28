@@ -20,9 +20,9 @@ const TEST_MODE = false;
 // };
 
 const config = {
-  countdown: 5,
+  countdown: 10,
   shots: 3,
-  delay: 3500,
+  delay: 5500,
   previewRefresh: 500,
 };
 
@@ -160,7 +160,7 @@ export default function Home() {
   });
 
   const captureBurst = async (count, delay) => {
-    const burst = await fetch("/image").then(res => res.json());
+    const burst = await fetch(`/image?count=${count}&delay=${delay}`).then(res => res.json());
     return burst;
   }
 
@@ -205,7 +205,8 @@ export default function Home() {
     const timeline = _.range(config.shots).map(n => startTime + initialDelay + config.delay * n);
 
     //Play the shutter sound a bit earlier so it lines up
-    const capturePromise = before(timeline[0],1000).then(() => fakeCaptureBurst(config.shots,config.delay));
+    const captureFunction = TEST_MODE ? fakeCaptureBurst : captureBurst;
+    const capturePromise = before(timeline[0],1000).then(() => captureFunction(config.shots,config.delay));
 
     for (const t of timeline) {
       before(t,1030).then(() => shutter(0));
