@@ -10,6 +10,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import _ from "lodash";
 import useState from 'react-usestateref';
 
+const TEST_MODE = true;
+
 // const config = {
 //   countdown: 3,
 //   shots: 3,
@@ -18,9 +20,9 @@ import useState from 'react-usestateref';
 // };
 
 const config = {
-  countdown: 1,
+  countdown: 2,
   shots: 3,
-  delay: 200,
+  delay: 3000,
   previewRefresh: 500,
 };
 
@@ -96,28 +98,28 @@ function PhotoCollage(props) {
   const photos = props.photos;
   const ref = React.useRef();
 
-  // useInterval(() => {
-  //   const photoWidth = 300;
-  //   const photoHeight = 225;
-  //   if (props.photos.length === 0) return;
-  //   const photo = _.sample(props.photos);
-  //   const $img = $(`<div class="collage"><img src="${photo}" /></div>`);
-  //   const maxX = $(ref.current).width()-photoWidth;
-  //   const maxY = $(ref.current).height()-photoHeight;
-  //   const photosToShow = 20;
-  //   const maxCant = 30;
-  //   $img.css({
-  //     left: Math.random() * maxX,
-  //     top: Math.random() * maxY,
-  //     transform: `rotate(${-maxCant+2*maxCant*Math.random()}deg)`,
-  //   });
-  //   $img.find("img").css({
-  //     width: photoWidth,
-  //     height: photoHeight,
-  //   })
-  //   $(ref.current).append($img);
-  //   while ($(ref.current).length > photosToShow) $(ref.current).children()[0].delete();
-  // }, 2000);
+  useInterval(() => {
+    const photoWidth = 300;
+    const photoHeight = 225;
+    if (props.photos.length === 0) return;
+    const photo = _.sample(props.photos);
+    const $img = $(`<div class="collage"><img src="${photo}" /></div>`);
+    const maxX = $(ref.current).width()-photoWidth;
+    const maxY = $(ref.current).height()-photoHeight;
+    const photosToShow = 20;
+    const maxCant = 30;
+    $img.css({
+      left: Math.random() * maxX,
+      top: Math.random() * maxY,
+      transform: `rotate(${-maxCant+2*maxCant*Math.random()}deg)`,
+    });
+    $img.find("img").css({
+      width: photoWidth,
+      height: photoHeight,
+    })
+    $(ref.current).append($img);
+    while ($(ref.current).length > photosToShow) $(ref.current).children()[0].delete();
+  }, 2000);
 
   if (props.hide) return null;
   return (<div ref={ref} className={props.className} style={{background: "blue", overflow: "hidden", position:"relative"}}></div>);
@@ -135,12 +137,13 @@ function makeid(length) {
 }
 
 function Preview(props) {
-  const [src,setSrc] = React.useState(props.src);
+  let [src,setSrc] = React.useState(props.src);
   useInterval(() => {
     setSrc(props.src+"?r="+makeid(10));
   }, props.refresh);
 
-  return ( <img style={{borderRadius:15,border:"6px solid white",width:"500px"}} src={src} /> );
+  if (TEST_MODE) src = "https://place-hold.it/400x300";
+  return ( <img style={{borderRadius:15,border:"6px solid white",width:"100%"}} src={src} /> );
 }
 
 export default function Home() {
@@ -161,23 +164,59 @@ export default function Home() {
     return burst;
   }
 
-  const trigger = (count) => {
-    setCountdown(count);
-    let timer = setInterval(() => {
-      count --;
-      if (count === 0) {
-        setCountdown(null);
-        clearInterval(timer);
-        captureBurst(config.shots,config.delay).then((burst) => {
-          console.log(photoRef,burst);
-          setPhotos([...photoRef.current,...burst]);
-          setStrip(burst);
-        });
-      } else {
-        setCountdown(count);
-      }
-    },1000);
-  };
+  const fakeCaptureBurst = async (shots,delay) => {
+    await sleep(1000);
+    for (let i=0; i<shots; i++) {
+      console.log("snap..");
+      await sleep(delay);
+    }
+    return ["https://place-hold.it/400x300","https://place-hold.it/400x300","https://place-hold.it/400x300"];
+  }
+
+  const countdownTo = (t) => {
+    return new Promise((resolve,reject) => {
+      const timer = setInterval(() => {
+        const remain = t - new Date().getTime();
+        if (remain <= 0) {
+          clearInterval(timer);
+          setCountdown(-1);
+          resolve();
+          return;
+        }
+        setCountdown(Math.floor(remain / 1000));
+      },50);
+    });
+  }
+
+  const before = (t,before) => {
+    return new Promise((resolve,reject) => {
+      const timer = setInterval(() => {
+        const remain = t - new Date().getTime() - before;
+        if (remain <= 0) resolve();
+      },50);
+    });
+  }
+
+  const trigger = async (count) => {
+    const startTime = new Date().getTime();
+    const initialDelay = 500 + config.countdown*1000;
+    const timeline = _.range(config.shots).map(n => startTime + initialDelay + config.delay * n);
+
+    //Play the shutter sound a bit earlier so it lines up
+    const capturePromise = before(timeline[0],1000).then(() => fakeCaptureBurst(config.shots,config.delay));
+
+    for (const t of timeline) {
+      before(t,1030).then(() => shutter(0));
+      await countdownTo(t);
+      await sleep(200);
+    }
+
+    const burst = await capturePromise;
+    console.log("got burst",burst,photoRef.current);
+    setPhotos([...photoRef.current,...burst]);
+    setStrip(burst);
+    setCountdown(null);
+  }
 
   React.useEffect(() => {
     fetch("/photos")
@@ -222,15 +261,17 @@ export default function Home() {
                 <Card.Title style={{fontSize:"4em",fontFamily:"'Pacifico', cursive"}} className="m-1 text-center">Treehouse Photobooth</Card.Title>
               </Card>
             </Row>
-            {countdown != null && <div style={{position:"relative"}}>
-              <Overlay>{countdown}</Overlay>
-              <Preview src={"/preview"} refresh={config.previewRefresh} />
+            {countdown != null && <div className="flex-column flex-grow-1 d-flex align-items-center justify-content-center">
+              <div className="flex-shrink-1" style={{position:"relative", width: "80%"}}>
+                { countdown >= 0 && <Overlay>{countdown}</Overlay> }
+                <Preview src={"/preview"} refresh={config.previewRefresh} />
+              </div>
             </div> }
             <PhotoCollage hide={countdown !== null} className="flex-grow-1" photos={photos} />
           </div>
-          <div className="flex-shrink-1 d-flex m-1">
+          {countdown === null && <div className="flex-shrink-1 d-flex m-1">
             <PhotoStrip variant="lg" photos={strip} className="d-flex" />
-          </div>
+          </div> }
         </div>
       </Container>
 
