@@ -198,6 +198,8 @@ export default function Home() {
   }
 
   const trigger = async (count) => {
+    await fetch("/start");
+
     const startTime = new Date().getTime();
     const initialDelay = 500 + config.countdown*1000;
     const timeline = _.range(config.shots).map(n => startTime + initialDelay + config.delay * n);
@@ -215,6 +217,7 @@ export default function Home() {
     setPhotos([...photoRef.current,...burst]);
     setStrip(burst);
     setCountdown(null);
+    await fetch("/stop");
   }
 
   React.useEffect(() => {
