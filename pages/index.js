@@ -10,7 +10,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import _ from "lodash";
 import useState from 'react-usestateref';
 
-const TEST_MODE = true;
+const TEST_MODE = false;
 
 // const config = {
 //   countdown: 3,
@@ -20,9 +20,9 @@ const TEST_MODE = true;
 // };
 
 const config = {
-  countdown: 2,
+  countdown: 5,
   shots: 3,
-  delay: 3000,
+  delay: 3500,
   previewRefresh: 500,
 };
 
@@ -122,7 +122,7 @@ function PhotoCollage(props) {
   }, 2000);
 
   if (props.hide) return null;
-  return (<div ref={ref} className={props.className} style={{background: "blue", overflow: "hidden", position:"relative"}}></div>);
+  return (<div ref={ref} className={props.className} style={{overflow: "hidden", position:"relative"}}></div>);
 }
 
 function makeid(length) {
@@ -212,7 +212,6 @@ export default function Home() {
     }
 
     const burst = await capturePromise;
-    console.log("got burst",burst,photoRef.current);
     setPhotos([...photoRef.current,...burst]);
     setStrip(burst);
     setCountdown(null);
