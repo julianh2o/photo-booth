@@ -139,7 +139,7 @@ function makeid(length) {
 function Preview(props) {
   let [src,setSrc] = React.useState(props.src);
   useInterval(() => {
-    setSrc(props.src+"?r="+makeid(10));
+    if (props.updating) setSrc(props.src+"?r="+makeid(10));
   }, props.refresh);
 
   if (TEST_MODE) src = "https://place-hold.it/400x300";
@@ -151,6 +151,7 @@ export default function Home() {
   const [photos, setPhotos, photoRef] = useState([]);
   const [strip, setStrip] = useState([]);
   const [audio] = React.useState( typeof Audio !== "undefined" && new Audio("camera-shutter-sound.mp3"));
+  const [preview,setPreview] = React.useState(false);
 
   const shutter = async (startTime) => new Promise((resolve,reject) => {
     audio.currentTime = startTime;
@@ -199,12 +200,14 @@ export default function Home() {
 
   const trigger = async (count) => {
     await fetch("/start");
+    setPreview(true);
 
     const startTime = new Date().getTime();
     const initialDelay = 500 + config.countdown*1000;
     const timeline = _.range(config.shots).map(n => startTime + initialDelay + config.delay * n);
 
     //Play the shutter sound a bit earlier so it lines up
+    setPreview(false);
     const captureFunction = TEST_MODE ? fakeCaptureBurst : captureBurst;
     const capturePromise = before(timeline[0],1000).then(() => captureFunction(config.shots,config.delay));
 
@@ -218,7 +221,6 @@ export default function Home() {
     setPhotos([...photoRef.current,...burst]);
     setStrip(burst);
     setCountdown(null);
-    await fetch("/stop");
   }
 
   React.useEffect(() => {
@@ -267,7 +269,7 @@ export default function Home() {
             {countdown != null && <div className="flex-column flex-grow-1 d-flex align-items-center justify-content-center">
               <div className="flex-shrink-1" style={{position:"relative", width: "80%"}}>
                 { countdown >= 0 && <Overlay>{countdown}</Overlay> }
-                <Preview src={"/preview"} refresh={config.previewRefresh} />
+                <Preview updating={preview} src={"/preview"} refresh={config.previewRefresh} />
               </div>
             </div> }
             <PhotoCollage hide={countdown !== null} className="flex-grow-1" photos={photos} />

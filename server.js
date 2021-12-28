@@ -158,7 +158,7 @@ app.get('/image', async function (req, res) {
     try {
         const previewOn = !!preview;
         if (previewOn) await stopPreview();
-        const paths = await burst();
+        const paths = await burst(count,delay);
         // if (previewOn) startPreview();
 
         res.json(_.map(paths,(f) => path.join("/photos",path.relative(photoDirectory,f))));
