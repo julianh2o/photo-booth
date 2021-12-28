@@ -1,5 +1,4 @@
 import Head from "next/head";
-import Webcam from "react-webcam";
 import Container from "react-bootstrap/Container";
 import Row from "react-bootstrap/Row";
 import Col from "react-bootstrap/Col";
@@ -15,20 +14,41 @@ import useState from 'react-usestateref';
 //   countdown: 3,
 //   shots: 3,
 //   delay: 3000,
+//   previewRefresh: 500,
 // };
 
 const config = {
   countdown: 1,
   shots: 3,
   delay: 200,
+  previewRefresh: 500,
 };
 
 const width = 1280;
 const height = 960;
 const aspect = width / height;
 
-
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+function useInterval(callback, delay) {
+  const savedCallback = React.useRef();
+
+  // Remember the latest callback.
+  React.useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  // Set up the interval.
+  React.useEffect(() => {
+    function tick() {
+      savedCallback.current();
+    }
+    if (delay !== null) {
+      let id = setInterval(tick, delay);
+      return () => clearInterval(id);
+    }
+  }, [delay]);
+}
 
 class KeyboardMonitor extends React.Component {
   componentDidMount(){
@@ -60,57 +80,74 @@ function Overlay(props) {
 }
 
 function PhotoStrip(props) {
-  const strips = props.strips;
+  const photos = props.photos;
   const isLarge = props.variant === "lg";
 
-  return _.map(strips || [[null,null,null]], (photos, index) => <>
-    <Card {...props}>
-      <div className="d-flex flex-column justify-content-around flex-grow-1 mx-1" key={index}>
-      { _.map(photos,(photo,i) =>
-        <img style={{height:isLarge ? "32.5vh" : null, borderRadius:5}} key={i} src={photo || `https://place-hold.it/400x300`} />
-        // <div className="flex-grow-1 m-1" style={{background:"url('https://place-hold.it/400x300')",aspectRatio:"4/3"}}>
-        // </div>
-      )}
-      </div>
-    </Card>
-  </>);
+  return (<Card {...props}>
+    <div className="d-flex flex-column justify-content-around flex-grow-1 mx-1">
+    { _.map(photos,(photo,i) =>
+      <img style={{height:isLarge ? "32.5vh" : null, borderRadius:5}} key={i} src={photo || `https://place-hold.it/400x300`} />
+    )}
+    </div>
+  </Card> );
 }
 
 function PhotoCollage(props) {
+  const photos = props.photos;
   const ref = React.useRef();
 
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      const photoWidth = 300;
-      const photoHeight = 225;
-      const $img = $(`<div class="collage"><img src="https://place-hold.it/${photoWidth}x${photoHeight}" /></div>`);
-      const maxX = $(ref.current).width()-photoWidth;
-      const maxY = $(ref.current).height()-photoHeight;
-      const photosToShow = 50;
-      const maxCant = 30;
-      $img.css({
-        left: Math.random() * maxX,
-        top: Math.random() * maxY,
-        transform: `rotate(${-maxCant+2*maxCant*Math.random()}deg)`,
-      })
-      $(ref.current).append($img);
-      while ($(ref.current).length > photosToShow) $(ref.current).children()[0].delete();
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+  // useInterval(() => {
+  //   const photoWidth = 300;
+  //   const photoHeight = 225;
+  //   if (props.photos.length === 0) return;
+  //   const photo = _.sample(props.photos);
+  //   const $img = $(`<div class="collage"><img src="${photo}" /></div>`);
+  //   const maxX = $(ref.current).width()-photoWidth;
+  //   const maxY = $(ref.current).height()-photoHeight;
+  //   const photosToShow = 20;
+  //   const maxCant = 30;
+  //   $img.css({
+  //     left: Math.random() * maxX,
+  //     top: Math.random() * maxY,
+  //     transform: `rotate(${-maxCant+2*maxCant*Math.random()}deg)`,
+  //   });
+  //   $img.find("img").css({
+  //     width: photoWidth,
+  //     height: photoHeight,
+  //   })
+  //   $(ref.current).append($img);
+  //   while ($(ref.current).length > photosToShow) $(ref.current).children()[0].delete();
+  // }, 2000);
 
-  return (<div ref={ref} className={props.className} style={{overflow: "hidden",position:"relative"}}></div>);
+  if (props.hide) return null;
+  return (<div ref={ref} className={props.className} style={{background: "blue", overflow: "hidden", position:"relative"}}></div>);
+}
+
+function makeid(length) {
+    var result           = '';
+    var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    var charactersLength = characters.length;
+    for ( var i = 0; i < length; i++ ) {
+      result += characters.charAt(Math.floor(Math.random() * 
+ charactersLength));
+   }
+   return result;
+}
+
+function Preview(props) {
+  const [src,setSrc] = React.useState(props.src);
+  useInterval(() => {
+    setSrc(props.src+"?r="+makeid(10));
+  }, props.refresh);
+
+  return ( <img style={{borderRadius:15,border:"6px solid white",width:"500px"}} src={src} /> );
 }
 
 export default function Home() {
-
   const [countdown,setCountdown] = React.useState(null);
-  const webcamRef = React.useRef(null);
+  const [photos, setPhotos, photoRef] = useState([]);
+  const [strip, setStrip] = useState([]);
   const [audio] = React.useState( typeof Audio !== "undefined" && new Audio("camera-shutter-sound.mp3"));
-
-  const [preview, setPreview, previewRef] = useState([]);
-
-  const videoConstraints = { width, height };
 
   const shutter = async (startTime) => new Promise((resolve,reject) => {
     audio.currentTime = startTime;
@@ -119,30 +156,9 @@ export default function Home() {
     audio.onpause = () => resolve();
   });
 
-  const capture = async (full) => {
-    const startTime = full ? 0 : 450;
-    const triggerTime = 650;
-    const [,data] = await Promise.all([
-      shutter(startTime / 1000),
-      (async () => {
-        await sleep(triggerTime - startTime);
-        return webcamRef.current.getScreenshot();
-      })()
-    ]);
-    return data;
-  }
-
   const captureBurst = async (count, delay) => {
-    const startTime = new Date().getTime();
-    const photos = [];
-    for (const i=0; i<count; i++) {
-      const [,data] = await Promise.all([
-        sleep(delay),
-        capture(i===0),
-      ]);
-      photos.push(data);
-    }
-    return photos;
+    const burst = await fetch("/image").then(res => res.json());
+    return burst;
   }
 
   const trigger = (count) => {
@@ -152,8 +168,10 @@ export default function Home() {
       if (count === 0) {
         setCountdown(null);
         clearInterval(timer);
-        captureBurst(config.shots,config.delay).then((photos) => {
-          setPreview([...previewRef.current,photos]);
+        captureBurst(config.shots,config.delay).then((burst) => {
+          console.log(photoRef,burst);
+          setPhotos([...photoRef.current,...burst]);
+          setStrip(burst);
         });
       } else {
         setCountdown(count);
@@ -161,18 +179,40 @@ export default function Home() {
     },1000);
   };
 
+  React.useEffect(() => {
+    fetch("/photos")
+      .then(res => res.json())
+      .then(
+        (result) => {
+          setPhotos(result);
+        },
+        (error) => {
+          console.log("got error",error)
+        }
+      )
+  }, []);
+
+  const handleKey = async (e) => {
+    const code = e.keyCode;
+    console.log(code);
+    if (code === 49) trigger(config.countdown);
+    if (code === 50) await fetch("/focus");
+    if (code === 51) await fetch("/togglePreview");
+    if (code === 52) window.location.reload();
+  }
+
   return (
     <>
       <Head>
-        <title>Create Next App</title>
+        <title>Treehouse Photobooth</title>
         <link rel="icon" href="/favicon.ico" />
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-        <link href="https://fonts.googleapis.com/css2?family=Pacifico&amp;display=swap" rel="stylesheet"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="true"/>
+        <link href={"https://fonts.googleapis.com/css2?family=Pacifico&display=swap"} rel="stylesheet"/>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js" />
       </Head>
 
-      <KeyboardMonitor keydown={e => trigger(config.countdown)} />
+      <KeyboardMonitor keydown={e => handleKey(e) } />
 
       <Container fluid style={{position:"absolute",height:"100%", background:"url('background.webp')", backgroundSize:"cover", padding:0}}>
         <div className="d-flex align-items-stretch h-100">
@@ -182,14 +222,14 @@ export default function Home() {
                 <Card.Title style={{fontSize:"4em",fontFamily:"'Pacifico', cursive"}} className="m-1 text-center">Treehouse Photobooth</Card.Title>
               </Card>
             </Row>
-            <div style={{position:"relative"}}>
+            {countdown != null && <div style={{position:"relative"}}>
               <Overlay>{countdown}</Overlay>
-              <Webcam ref={webcamRef} style={{borderRadius:15,border:"6px solid white",width:"300px"}} videoConstraints={videoConstraints}/>
-            </div>
-            <PhotoCollage className="flex-grow-1" photos={_.flatten(preview)} />
+              <Preview src={"/preview"} refresh={config.previewRefresh} />
+            </div> }
+            <PhotoCollage hide={countdown !== null} className="flex-grow-1" photos={photos} />
           </div>
           <div className="flex-shrink-1 d-flex m-1">
-            <PhotoStrip variant="lg" strips={preview.length ? [preview[0]] : null} className="d-flex" />
+            <PhotoStrip variant="lg" photos={strip} className="d-flex" />
           </div>
         </div>
       </Container>
