@@ -218,7 +218,7 @@ export default function Home() {
     const captureFunction = TEST_MODE ? fakeCaptureBurst : captureBurst;
     const capturePromise = before(timeline[0],capturePreceedsTimeline).then(() => {
       setPreview(false);
-      captureFunction(config.shots,config.delay);
+      return captureFunction(config.shots,config.delay);
     });
 
     for (const t of timeline) {
