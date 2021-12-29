@@ -228,6 +228,7 @@ export default function Home() {
     }
 
     const burst = await capturePromise;
+    console.log("saving photos",{burst,current:photoRef.current});
     setPhotos([...photoRef.current,...burst]);
     setStrip(burst);
     setCountdown(null);
