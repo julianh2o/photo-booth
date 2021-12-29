@@ -29,30 +29,34 @@ function startPreview() {
     if (preview) return;
     return new Promise((resolve,reject) => {
         console.log("Starting Preview");
-        preview = exec(`sh -c 'gphoto2 --set-config /main/actions/viewfinder=1 --stdout --capture-movie | ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -threads 0 -f v4l2 /dev/video0'`,function(error,stdout,stderr) {
-            // if (error) {
-            //     console.log(error.stack);
-            //     console.log('Error code: '+error.code);
-            //     console.log('Signal received: '+error.signal);
-            // }
-            // console.log('Child Process STDOUT: '+stdout);
-            // console.log('Child Process STDERR: '+stderr);
-        });
+        try {
+            preview = exec(`sh -c 'gphoto2 --set-config /main/actions/viewfinder=1 --stdout --capture-movie | ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -threads 0 -f v4l2 /dev/video0'`,function(error,stdout,stderr) {
+                // if (error) {
+                //     console.log(error.stack);
+                //     console.log('Error code: '+error.code);
+                //     console.log('Signal received: '+error.signal);
+                // }
+                // console.log('Child Process STDOUT: '+stdout);
+                // console.log('Child Process STDERR: '+stderr);
+            });
 
-        const t = setTimeout(reject,3000);
-        // preview.stdout.on("data",(data) => console.log("stdout: "+data));
-        preview.stderr.on("data",(data) => {
-            if (data.startsWith("frame=")) {
-                clearTimeout(t);
-                resolve();
-            }
-            // console.log("sterr: "+data);
-        });
+            const t = setTimeout(reject,3000);
+            // preview.stdout.on("data",(data) => console.log("stdout: "+data));
+            preview.stderr.on("data",(data) => {
+                if (data.startsWith("frame=")) {
+                    clearTimeout(t);
+                    resolve();
+                }
+                // console.log("sterr: "+data);
+            });
 
-        preview.on("exit",function(code) {
-            console.log("Preview exited with "+code);
-            preview = null;
-        });
+            preview.on("exit",function(code) {
+                console.log("Preview exited with "+code);
+                preview = null;
+            });
+        } catch (err) {
+            console.log("error while starting preview",err);
+        }
 
     })
 }
