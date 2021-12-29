@@ -41,12 +41,10 @@ function startPreview() {
             });
 
             const t = setTimeout(() => {
-                console.log("timeout reached");
                 reject("timeout reached!");
             },15000);
             preview.stdout.on("data",(data) => console.log("stdout: "+data));
             preview.stderr.on("data",(data) => {
-                console.log("sterr: "+data);
                 if (data.startsWith("frame=")) {
                     clearTimeout(t);
                     resolve();
@@ -109,6 +107,7 @@ async function singleShot(noSave) {
 }
 
 async function burst(count, delay) {
+    console.log("Burst: ",{count,delay});
     const start = new Date().getTime();
     const filenames = [];
     for (let i=0; i<count; i++) {

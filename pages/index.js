@@ -139,6 +139,7 @@ function makeid(length) {
 function Preview(props) {
   let [src,setSrc] = React.useState(props.src);
   useInterval(() => {
+    console.log(props.updating);
     if (props.updating) setSrc(props.src+"?r="+makeid(10));
   }, props.refresh);
 
@@ -203,7 +204,7 @@ export default function Home() {
     setPreview(true);
 
     const startTime = new Date().getTime();
-    const initialDelay = 500 + config.countdown*1000;
+    const initialDelay = 1000 + config.countdown*1000;
     const timeline = _.range(config.shots).map(n => startTime + initialDelay + config.delay * n);
 
     //Play the shutter sound a bit earlier so it lines up
