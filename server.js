@@ -40,7 +40,10 @@ function startPreview() {
                 // console.log('Child Process STDERR: '+stderr);
             });
 
-            const t = setTimeout(reject,5000);
+            const t = setTimeout(() => {
+                console.log("timeout reached");
+                reject("timeout reached!");
+            },8000);
             preview.stdout.on("data",(data) => console.log("stdout: "+data));
             preview.stderr.on("data",(data) => {
                 console.log("sterr: "+data);
@@ -122,8 +125,13 @@ async function burst(count, delay) {
 }
 
 app.get("/start",async (req,res) => {
-    await startPreview();
-    res.sendStatus(200);
+    try {
+        await startPreview();
+        res.sendStatus(200);
+    } catch (err) {
+        console.log("Caught err",err);
+        res.sendStatus(500);
+    }
 });
 
 app.get("/stop",async (req,res) => {
