@@ -203,19 +203,25 @@ export default function Home() {
     await fetch("/start");
     setPreview(true);
 
+    const initialDelay = 500;
+    const capturePreceedsTimeline = 1500;
+    const delayBeforeCountdownReappears = 1000;
+
     const startTime = new Date().getTime();
-    const initialDelay = 1000 + config.countdown*1000;
+    const initialDelay = initialDelay + config.countdown*1000;
     const timeline = _.range(config.shots).map(n => startTime + initialDelay + config.delay * n);
 
     //Play the shutter sound a bit earlier so it lines up
-    setPreview(false);
     const captureFunction = TEST_MODE ? fakeCaptureBurst : captureBurst;
-    const capturePromise = before(timeline[0],1000).then(() => captureFunction(config.shots,config.delay));
+    const capturePromise = before(timeline[0],capturePreceedsTimeline).then(() => {
+      setPreview(false);
+      captureFunction(config.shots,config.delay);
+    });
 
     for (const t of timeline) {
       before(t,1030).then(() => shutter(0));
       await countdownTo(t);
-      await sleep(200);
+      await sleep(delayBeforeCountdownReappears);
     }
 
     const burst = await capturePromise;
