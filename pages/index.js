@@ -203,12 +203,12 @@ export default function Home() {
     await fetch("/start");
     setPreview(true);
 
-    const initialDelay = 500;
+    const delayBeforeCountdown = 500;
     const capturePreceedsTimeline = 1500;
     const delayBeforeCountdownReappears = 1000;
 
     const startTime = new Date().getTime();
-    const initialDelay = initialDelay + config.countdown*1000;
+    const initialDelay = delayBeforeCountdown + config.countdown*1000;
     const timeline = _.range(config.shots).map(n => startTime + initialDelay + config.delay * n);
 
     //Play the shutter sound a bit earlier so it lines up
