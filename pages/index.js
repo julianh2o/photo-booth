@@ -153,6 +153,7 @@ export default function Home() {
   const [strip, setStrip] = useState([]);
   const [audio] = React.useState( typeof Audio !== "undefined" && new Audio("camera-shutter-sound.mp3"));
   const [preview,setPreview] = React.useState(false);
+  const [bust, setBusy, busyRef] = useState(false);
 
   const shutter = async (startTime) => new Promise((resolve,reject) => {
     audio.currentTime = startTime;
@@ -200,6 +201,7 @@ export default function Home() {
   }
 
   const trigger = async (count) => {
+    setBusy(true);
     await fetch("/focus");
     await fetch("/start");
     setPreview(true);
@@ -229,6 +231,7 @@ export default function Home() {
     setPhotos([...photoRef.current,...burst]);
     setStrip(burst);
     setCountdown(null);
+    setBusy(false);
   }
 
   React.useEffect(() => {
@@ -247,10 +250,20 @@ export default function Home() {
   const handleKey = async (e) => {
     const code = e.keyCode;
     console.log(code);
-    if (code === 49) trigger(config.countdown);
-    if (code === 50) await fetch("/focus");
-    if (code === 51) await fetch("/togglePreview");
     if (code === 52) window.location.reload();
+
+    if (busyRef.current) return;
+    if (code === 49) trigger(config.countdown);
+    if (code === 50) {
+      setBusy(true);
+      await fetch("/focus");
+      setBusy(false);
+    }
+    if (code === 51) {
+      setBusy(true);
+      await fetch("/togglePreview");
+      setBusy(false);
+    }
   }
 
   return (
