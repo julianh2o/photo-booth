@@ -200,12 +200,13 @@ export default function Home() {
   }
 
   const trigger = async (count) => {
+    await fetch("/focus");
     await fetch("/start");
     setPreview(true);
 
     const delayBeforeCountdown = 500;
-    const capturePreceedsTimeline = 1500;
-    const delayBeforeCountdownReappears = 1000;
+    const capturePreceedsTimeline = 2000;
+    const delayBeforeCountdownReappears = 2000;
 
     const startTime = new Date().getTime();
     const initialDelay = delayBeforeCountdown + config.countdown*1000;
@@ -274,7 +275,7 @@ export default function Home() {
               </Card>
             </Row>
             {countdown != null && <div className="flex-column flex-grow-1 d-flex align-items-center justify-content-center">
-              <div className="flex-shrink-1" style={{position:"relative", width: "80%"}}>
+              <div className="flex-shrink-1" style={{position:"relative", width: "70%"}}>
                 { countdown >= 0 && <Overlay>{countdown}</Overlay> }
                 <Preview updating={preview} src={"/preview"} refresh={config.previewRefresh} />
               </div>
