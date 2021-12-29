@@ -43,7 +43,7 @@ function startPreview() {
             const t = setTimeout(() => {
                 console.log("timeout reached");
                 reject("timeout reached!");
-            },8000);
+            },15000);
             preview.stdout.on("data",(data) => console.log("stdout: "+data));
             preview.stderr.on("data",(data) => {
                 console.log("sterr: "+data);
