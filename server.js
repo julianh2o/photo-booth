@@ -41,13 +41,13 @@ function startPreview() {
             });
 
             const t = setTimeout(reject,3000);
-            // preview.stdout.on("data",(data) => console.log("stdout: "+data));
+            preview.stdout.on("data",(data) => console.log("stdout: "+data));
             preview.stderr.on("data",(data) => {
+                console.log("sterr: "+data);
                 if (data.startsWith("frame=")) {
                     clearTimeout(t);
                     resolve();
                 }
-                // console.log("sterr: "+data);
             });
 
             preview.on("exit",function(code) {
