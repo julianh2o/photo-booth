@@ -40,7 +40,7 @@ function startPreview() {
                 // console.log('Child Process STDERR: '+stderr);
             });
 
-            const t = setTimeout(reject,3000);
+            const t = setTimeout(reject,5000);
             preview.stdout.on("data",(data) => console.log("stdout: "+data));
             preview.stderr.on("data",(data) => {
                 console.log("sterr: "+data);
