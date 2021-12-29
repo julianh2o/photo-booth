@@ -141,12 +141,17 @@ app.get("/stop",async (req,res) => {
 });
 
 app.get("/togglePreview",async function(req,res) {
-    if (preview) {
-        await stopPreview();
-    } else {
-        await startPreview();
+    try {
+        if (preview) {
+            await stopPreview();
+        } else {
+            await startPreview();
+        }
+        res.sendStatus(200);
+    } catch (err) {
+        console.log("caught err",err);
+        res.sendStatus(500);
     }
-    res.sendStatus(200);
 });
 
 
