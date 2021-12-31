@@ -139,7 +139,6 @@ function makeid(length) {
 function Preview(props) {
   let [src,setSrc] = React.useState(props.src);
   useInterval(() => {
-    console.log(props.updating);
     if (props.updating) setSrc(props.src+"?r="+makeid(10));
   }, props.refresh);
 
@@ -170,7 +169,6 @@ export default function Home() {
   const fakeCaptureBurst = async (shots,delay) => {
     await sleep(1000);
     for (let i=0; i<shots; i++) {
-      console.log("snap..");
       await sleep(delay);
     }
     return ["https://place-hold.it/400x300","https://place-hold.it/400x300","https://place-hold.it/400x300"];
@@ -228,14 +226,13 @@ export default function Home() {
     }
 
     const burst = await capturePromise;
-    console.log("saving photos",{burst,current:photoRef.current});
     setPhotos([...photoRef.current,...burst]);
     setStrip(burst);
     setCountdown(null);
     setBusy(false);
   }
 
-  React.useEffect(() => {
+  const doPhotoFetch = () => {
     fetch("/photos")
       .then(res => res.json())
       .then(
@@ -246,6 +243,10 @@ export default function Home() {
           console.log("got error",error)
         }
       )
+  }
+
+  React.useEffect(() => {
+    setInterval(doPhotoFetch,10000);
   }, []);
 
   const handleKey = async (e) => {
