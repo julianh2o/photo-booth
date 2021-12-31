@@ -252,20 +252,20 @@ export default function Home() {
   const handleKey = async (e) => {
     const code = e.keyCode;
     console.log(code);
-    if (code === 52) window.location.reload();
+    if (code === 51) window.location.reload();
 
     if (busyRef.current) return;
     if (code === 49) trigger(config.countdown);
-    if (code === 50) {
-      setBusy(true);
-      await fetch("/focus");
-      setBusy(false);
-    }
-    if (code === 51) {
-      setBusy(true);
-      await fetch("/togglePreview");
-      setBusy(false);
-    }
+    // if (code === 50) {
+    //   setBusy(true);
+    //   await fetch("/focus");
+    //   setBusy(false);
+    // }
+    // if (code === 51) {
+    //   setBusy(true);
+    //   await fetch("/togglePreview");
+    //   setBusy(false);
+    // }
   }
 
   return (
