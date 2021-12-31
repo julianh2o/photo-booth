@@ -253,6 +253,7 @@ export default function Home() {
     const code = e.keyCode;
     console.log(code);
     if (code === 51) window.location.reload();
+    if (code === 50) window.location.reload();
 
     if (busyRef.current) return;
     if (code === 49) trigger(config.countdown);
